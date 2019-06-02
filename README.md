@@ -1,4 +1,6 @@
-![alt text](logo.jpg)
+<p align="center">
+  <img width="300" height="460" src="logo.jpg">
+</p>
 # balloon hash
 
 This is a [balloon hash](https://crypto.stanford.edu/balloon/) implementation. It is taylored for organism's needs.
