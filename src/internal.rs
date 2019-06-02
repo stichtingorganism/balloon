@@ -120,7 +120,7 @@ impl Internal {
                     //hash count
                     d_squeeze.update(&be_u8_from_u32(self.counter));
                     //increment count
-                    self.counter = self.counter + 1;
+                    self.counter += 1;
                     //salt
                     d_squeeze.update(salty);
                     //time index
@@ -141,7 +141,7 @@ impl Internal {
                     //hash count
                     d_squeeze.update(&be_u8_from_u32(self.counter));
                     //increment count
-                    self.counter = self.counter + 1;
+                    self.counter += 1;
 
                     //
                     d_squeeze.update(&self.buffer[s_step].as_bytes());
