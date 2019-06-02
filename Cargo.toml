@@ -8,7 +8,7 @@ license = "Apache-2.0"
 repository = "https://github.com/stichtingorganism/balloon"
 
 [dependencies]
-blake2b_simd = "0.5"
+mohan = "0.0.1"
 subtle = "2"
 num-bigint = "0.2"
 num-traits = "0.2"

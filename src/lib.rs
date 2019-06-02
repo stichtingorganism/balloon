@@ -53,19 +53,18 @@ mod utilz;
 //The size of each block is equal to the output size of the hash function H. 
 //We use litte endian encoding
 
-use blake2b_simd::Hash;
 use crate::error::Error;
 use crate::internal::Internal;
 use crate::buffer::SpaceHandler;
 use crate::utilz::{compare_ct, HASH_LEN};
-
+use mohan::types::H512;
 
 //
 //Balloon
 //
 
 //new ballon instance with given space and time parameters
-pub fn balloon(passy: &[u8], salty: &[u8], space: usize, time: usize, delta: usize) -> Result<Hash, Error> {
+pub fn balloon(passy: &[u8], salty: &[u8], space: usize, time: usize, delta: usize) -> Result<H512, Error> {
 
     //
     // Base Checks

@@ -19,10 +19,12 @@ use crate::utilz::{HASH_LEN, to_num, be_u8_from_u32};
 use crate::error::Error;
 use crate::buffer::SpaceHandler;
 use num_traits::cast::ToPrimitive;
-use blake2b_simd::{Params, Hash};
+use mohan::blake2b::{Params, Hash};
+use mohan::types::H512;
+use mohan::hash::blake512;
 
 
-//Internal state of a Balloon instance
+/// Internal state of a Balloon instance
 pub struct Internal {
     //main buffer
     pub buffer: SpaceHandler<Hash>,
@@ -162,7 +164,7 @@ impl Internal {
     //
     // Step 3. Extract output from buffer.
     //
-    pub fn finalize(&mut self) -> Result<Hash, Error> {
+    pub fn finalize(&mut self) -> Result<H512, Error> {
         // let bytes = self.buffer.len() * HASH_LEN;
         // let bytes_mb = (bytes as f64) * 0.000001; 
         // println!("Balloon Hash Buffer size {:?} bytes", bytes);
@@ -170,7 +172,8 @@ impl Internal {
         //only finalize if mixing has occured
         if self.has_mixed {
             //hash last block
-            Ok(Params::new().hash_length(HASH_LEN).hash(&self.buffer.back.pop().unwrap().as_bytes()))
+            Ok(blake512(&self.buffer.back.pop().unwrap().as_bytes()))
+            //Ok(Params::new().hash_length(HASH_LEN).hash(&self.buffer.back.pop().unwrap().as_bytes()))
             
         } else {
             Err(Error::FinalizeBeforeMix)
