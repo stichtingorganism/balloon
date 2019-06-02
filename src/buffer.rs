@@ -1,4 +1,4 @@
-// Copyright 2018 Stichting Organism
+// Copyright 2019 Stichting Organism
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,18 +16,6 @@
 //Fixed Length AppendOnly Memory Buffer
 
 use std::ops::{IndexMut, Index};
-
-//Generic Memory Manager interface for operating functions.
-// pub trait MemoryManager<T> {
-//     type MemStore;
-//     type Index;
-
-//     fn allocate() -> T;
-//     fn insert() -> Index;
-//     fn len() -> usize;
-//     fn clear();
-
-// }
 
 
 //Buffer backed by a Vec for now
@@ -57,6 +45,7 @@ impl<T> SpaceHandler<T> {
     pub fn clear(&mut self) { self.back.clear() }
     pub fn is_empty(&self) -> bool { self.back.is_empty() }
     pub fn len(&self) -> usize { self.back.len() }
+
 }
 
 //

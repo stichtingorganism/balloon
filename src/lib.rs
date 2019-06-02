@@ -1,4 +1,4 @@
-// Copyright 2018 Stichting Organism
+// Copyright 2019 Stichting Organism
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,14 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-//
-//External Crates
-//
-extern crate blake2_rfc;
-extern crate subtle;
-extern crate num_bigint;
-extern crate num_traits;
 
 //
 //Balloon Hashing
@@ -54,76 +46,29 @@ extern crate num_traits;
 mod error;
 mod internal;
 mod buffer;
+mod utilz;
 
 //Our Implementation makes some assumptions
-//We use 512 bits (64 bytes) blake2b.
+//We use 512 bits (64 bytes) hash function.
 //The size of each block is equal to the output size of the hash function H. 
 //We use litte endian encoding
 
-// use blake2_rfc::blake2b::{Blake2b, Blake2bResult};
-use subtle::ConstantTimeEq;
-use error::Error;
-use num_bigint::BigUint;
-use internal::Internal;
-use buffer::SpaceHandler;
-use blake2_rfc::blake2b::{Blake2bResult};
+use blake2b_simd::Hash;
+use crate::error::Error;
+use crate::internal::Internal;
+use crate::buffer::SpaceHandler;
+use crate::utilz::{compare_ct, HASH_LEN};
 
-//
-//Constants
-//
-
-pub const HASH_LEN: usize = 64;
-
-
-//
-//Helper functions
-//
-
-//Borrowed from https://github.com/briansmith/ring
-//converts a unsigned 32bit integer to a big endien byte representation
-#[inline(always)]
-fn be_u8_from_u32(value: u32) -> [u8; 4] {
-    [
-        ((value >> 24) & 0xff) as u8,
-        ((value >> 16) & 0xff) as u8,
-        ((value >> 8) & 0xff) as u8,
-        (value & 0xff) as u8
-    ]
-}
-
-//takes a series of bytes and converts to an unsigned big int.
-//le dones it is in little endian
-pub fn to_num(b: &[u8], le: bool) -> BigUint {
-    if le {
-        return BigUint::from_bytes_le(b);
-    } else {
-        return BigUint::from_bytes_be(b);
-    }
-}
-
-//https://github.com/brycx/orion/blob/master/src/utilities/util.rs
-//Compare two equal length slices in constant time, using the
-fn compare_ct(a: &[u8], b: &[u8]) -> Option<Error> {
-    if a.len() != b.len() {
-        return Some(Error::InvalidFormat);
-    }
-
-    if a.ct_eq(b).unwrap_u8() == 1 {
-        None
-    } else {
-        return Some(Error::InvalidFormat);
-    }
-}
 
 //
 //Balloon
 //
 
 //new ballon instance with given space and time parameters
-pub fn balloon(passy: &[u8], salty: &[u8], space: usize, time: usize, delta: usize) -> Result<Blake2bResult, Error> {
+pub fn balloon(passy: &[u8], salty: &[u8], space: usize, time: usize, delta: usize) -> Result<Hash, Error> {
 
     //
-    //Base Checks
+    // Base Checks
     //
 
     //space must be greater than the digest length
@@ -182,15 +127,26 @@ pub fn verify(val: [u8; HASH_LEN], passy: &[u8], salty: &[u8], space: usize, tim
 
 #[cfg(test)]
 mod tests {
+    
     use super::balloon;
+    use elapsed::measure_time;
 
     #[test]
     fn it_works() {
         let password = [0u8, 1u8, 2u8, 3u8, 0u8, 1u8, 2u8, 3u8];
         let salt = [0u8, 1u8, 2u8, 3u8, 3u8];
         //let test = balloon(&password, &salt, 8388608 , 3, 3);
-        let test = balloon(&password, &salt, 16 , 20, 4);
-        println!("{:?}", test.unwrap().as_bytes());
+         //let test = balloon(&password, &salt, 16 , 20, 4)
+
+        let (elapsed, _sum) = measure_time(|| {
+            // balloon(&password, &salt, 8388608 , 3, 4)
+            balloon(&password, &salt, 32 , 40, 8)
+        });
+
+        println!("elapsed = {}", elapsed);
+        println!("elapsed seconds = {}", elapsed.seconds());
+        //println!("sum = {}", sum.unwrap().as_bytes());
+       
 
     }
 

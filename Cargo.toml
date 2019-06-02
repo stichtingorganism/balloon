@@ -1,11 +1,21 @@
 [package]
 name = "balloon"
-version = "0.0.1"
-description = "Balloon Hash with Blake2b"
-authors = ["hello@organism.ai"]
+version = "0.0.2"
+description = "Balloon Hash"
+authors = ["hello@organism.org"]
+edition = "2018"
+
 
 [dependencies]
-blake2-rfc = "0.2"
-subtle = "0.7.0"
+blake2b_simd = "0.5"
+subtle = "2"
 num-bigint = "0.2"
 num-traits = "0.2"
+elapsed = "0.1"
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "balloon_benchmarks"
+harness = false

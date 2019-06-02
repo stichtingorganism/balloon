@@ -1,3 +1,3 @@
 # balloon hash
 
-Here be dragons:)
+Blake2b hard coded.
