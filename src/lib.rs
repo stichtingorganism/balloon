@@ -43,7 +43,7 @@
 ///
 //Internal
 //
-mod error;
+pub mod error;
 mod internal;
 mod buffer;
 mod utilz;
