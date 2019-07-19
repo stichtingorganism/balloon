@@ -19,7 +19,8 @@ use crate::utilz::{HASH_LEN, to_num, be_u8_from_u32};
 use crate::error::Error;
 use crate::buffer::SpaceHandler;
 use num_traits::cast::ToPrimitive;
-use mohan::blake2b::{Params, Hash};
+
+use mohan::hash::blake2b::{Params, Hash};
 use mohan::types::H512;
 use mohan::hash::blake512;
 
