@@ -13,39 +13,19 @@
 // limitations under the License.
 
 //Ballon errors
+use failure::Fail;
 
-use std::{fmt, error};
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum Error {
-    //Invalid format is passed to function
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Fail)]
+pub enum ErrorKind {
+    #[fail(display = "salt must be at least 4 bytes long")]
     InvalidSalt,
+    #[fail(display = "space must be greater than the digest length")]
     InvalidSpace,
+    #[fail(display = "time must be greater than or equal to 1")]
     InvalidTime,
+    #[fail(display = "cannot finalize balloon before mixing")]
     FinalizeBeforeMix,
+    #[fail(display = "invalid format is passed to Balloon")]
     InvalidFormat
 }
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(match self {
-            Error::InvalidSalt => "salt must be at least 4 bytes long",
-            Error::InvalidSpace => "space must be greater than the digest length",
-            Error::InvalidTime => "time must be greater than or equal to 1",
-            Error::FinalizeBeforeMix => "cannot finalize balloon before mixing",
-             Error::InvalidFormat => "invalid format is passed to Balloon"
-        })
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        match self {
-            Error::InvalidSalt => "salt must be at least 4 bytes long",
-            Error::InvalidSpace => "space must be greater than the digest length",
-            Error::InvalidTime => "time must be greater than or equal to 1",
-            Error::FinalizeBeforeMix => "cannot finalize balloon before mixing",
-             Error::InvalidFormat => "invalid format is passed to Balloon"
-        }
-    }
-}

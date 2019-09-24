@@ -40,42 +40,47 @@
     the longer it takes to compute the function in small space.
 */
 
+extern crate num_bigint_dig as num_bigint;
+
 ///
 //Internal
 //
-pub mod error;
+mod error;
+pub use error::ErrorKind;
+
 mod internal;
 mod buffer;
-mod utilz;
 
 //Our Implementation makes some assumptions
 //We use 512 bits (64 bytes) hash function.
 //The size of each block is equal to the output size of the hash function H. 
 //We use litte endian encoding
 
-use crate::error::Error;
 use crate::internal::Internal;
 use crate::buffer::SpaceHandler;
-use crate::utilz::{compare_ct, HASH_LEN};
-use mohan::types::H512;
+use subtle::ConstantTimeEq;
 
 //
 //Balloon
 //
 
+///512 bits hash is 64 bytes
+pub const HASH_LEN: usize = 64;
+
+
 //new ballon instance with given space and time parameters
-pub fn balloon(passy: &[u8], salty: &[u8], space: usize, time: usize, delta: usize) -> Result<H512, Error> {
+pub fn balloon(passy: &[u8], salty: &[u8], space: u64, time: u64, delta: u64) -> Result<mohan::blake2::Hash, ErrorKind> {
 
     //
     // Base Checks
     //
 
     //space must be greater than the digest length
-    if space < 1 { return Err(Error::InvalidSpace) }
+    if space < 1 { return Err(ErrorKind::InvalidSpace) }
     //time must be greater than or equal to 
-    if time < 1 { return Err(Error::InvalidTime) }
+    if time < 1 { return Err(ErrorKind::InvalidTime) }
     //salt must be at least 4 bytes long
-    if salty.len() < 4 { return Err(Error::InvalidSalt) }
+    if salty.len() < 4 { return Err(ErrorKind::InvalidSalt) }
 
     //
     //Main Variables
@@ -83,7 +88,7 @@ pub fn balloon(passy: &[u8], salty: &[u8], space: usize, time: usize, delta: usi
     
     let mut internal = Internal {
         //alloc buf based on given space
-        buffer:  SpaceHandler::allocate(space),
+        buffer:  SpaceHandler::allocate(space as usize),
         last_block: None,
         counter: 0,
         space: space,
@@ -105,7 +110,7 @@ pub fn balloon(passy: &[u8], salty: &[u8], space: usize, time: usize, delta: usi
 
 
 //Verify BALLOON-BLAKE2b derived key in constant time.
-pub fn verify(val: [u8; HASH_LEN], passy: &[u8], salty: &[u8], space: usize, time: usize, delta: usize) -> Result<bool, Error> {
+pub fn verify(val: [u8; HASH_LEN], passy: &[u8], salty: &[u8], space: u64, time: u64, delta: u64) -> Result<bool, ErrorKind> {
     match balloon(passy, salty, space, time, delta) {
         //no errors continue
         Ok(res) => {
@@ -121,7 +126,19 @@ pub fn verify(val: [u8; HASH_LEN], passy: &[u8], salty: &[u8], space: usize, tim
     }
 }
 
+//https://github.com/brycx/orion/blob/master/src/utilities/util.rs
+//Compare two equal length slices in constant time, using the
+pub fn compare_ct(a: &[u8], b: &[u8]) -> Option<ErrorKind> {
+    if a.len() != b.len() {
+        return Some(ErrorKind::InvalidFormat);
+    }
 
+    if a.ct_eq(b).unwrap_u8() == 1 {
+        None
+    } else {
+        return Some(ErrorKind::InvalidFormat);
+    }
+}
 
 
 #[cfg(test)]
@@ -135,20 +152,25 @@ mod tests {
         let password = [0u8, 1u8, 2u8, 3u8, 0u8, 1u8, 2u8, 3u8];
         let salt = [0u8, 1u8, 2u8, 3u8, 3u8];
         //let test = balloon(&password, &salt, 8388608 , 3, 3);
-         //let test = balloon(&password, &salt, 16 , 20, 4)
+        //let test = balloon(&password, &salt, 16 , 20, 4)
 
         let (elapsed, _sum) = measure_time(|| {
-            // balloon(&password, &salt, 8388608 , 3, 4)
-            balloon(&password, &salt, 32 , 40, 8)
+            //space, time, delta
+            //elapsed = 189.32 s
+            // balloon(&password, &salt, 10000, 40, 4)
+            // delta = 5
+            // time_cost = 18
+            // space_cost = 24
+            //balloon(&password, &salt, 1000000, 5, 4)
+
+            //s: 100, t: 50, d: 10 = 6 seconds on my mac
+            //s: 400, t: 60, d: 10 = 25 seconds on my mac
+            balloon(&password, &salt, 400, 60, 10)
         });
 
         println!("elapsed = {}", elapsed);
         println!("elapsed seconds = {}", elapsed.seconds());
         //println!("sum = {}", sum.unwrap().as_bytes());
-       
-
     }
-
-
 
 }

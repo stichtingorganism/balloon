@@ -36,14 +36,14 @@ impl<T> SpaceHandler<T> {
     pub fn insert(&mut self, item: T) { self.back.push(item) }
 
     //retrieve an element from given index
-    pub fn get(&self, index: usize) -> Option<&T> { self.back.get(index) }
+    //pub fn get(&self, index: usize) -> Option<&T> { self.back.get(index) }
 
     //retrieve an element from given index and mutate
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> { self.back.get_mut(index) }
+    //pub fn get_mut(&mut self, index: usize) -> Option<&mut T> { self.back.get_mut(index) }
 
     //clear underlying memory slab
-    pub fn clear(&mut self) { self.back.clear() }
-    pub fn is_empty(&self) -> bool { self.back.is_empty() }
+    //pub fn clear(&mut self) { self.back.clear() }
+    //pub fn is_empty(&self) -> bool { self.back.is_empty() }
     pub fn len(&self) -> usize { self.back.len() }
 
 }
