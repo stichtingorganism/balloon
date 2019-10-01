@@ -69,7 +69,7 @@ pub const HASH_LEN: usize = 64;
 
 
 //new ballon instance with given space and time parameters
-pub fn balloon(passy: &[u8], salty: &[u8], space: u64, time: u64, delta: u64) -> Result<mohan::blake2::Hash, ErrorKind> {
+pub fn balloon(passy: &[u8], salty: &[u8], space: u64, time: u64, delta: u64) -> Result<[u8; HASH_LEN], ErrorKind> {
 
     //
     // Base Checks
@@ -104,18 +104,22 @@ pub fn balloon(passy: &[u8], salty: &[u8], space: u64, time: u64, delta: u64) ->
     internal.mix(salty);
 
     //output
-    return internal.finalize();
+    let output = internal.finalize()?;
+    let mut ret = [0u8; HASH_LEN];
+    ret.clone_from_slice(&output.as_bytes());
+
+    return Ok(ret);
 }
 
 
 
 //Verify BALLOON-BLAKE2b derived key in constant time.
-pub fn verify(val: [u8; HASH_LEN], passy: &[u8], salty: &[u8], space: u64, time: u64, delta: u64) -> Result<bool, ErrorKind> {
+pub fn verify(val: &[u8; HASH_LEN], passy: &[u8], salty: &[u8], space: u64, time: u64, delta: u64) -> Result<bool, ErrorKind> {
     match balloon(passy, salty, space, time, delta) {
         //no errors continue
         Ok(res) => {
             //do we have a match
-            match compare_ct(&res.as_bytes(), &val) {
+            match compare_ct(&res, val) {
                 Some(_) => Ok(false),
                 //no res means match
                 None => Ok(true)
@@ -144,7 +148,7 @@ pub fn compare_ct(a: &[u8], b: &[u8]) -> Option<ErrorKind> {
 #[cfg(test)]
 mod tests {
     
-    use super::balloon;
+    use super::*;
     use elapsed::measure_time;
 
     #[test]
@@ -171,6 +175,14 @@ mod tests {
         println!("elapsed = {}", elapsed);
         println!("elapsed seconds = {}", elapsed.seconds());
         //println!("sum = {}", sum.unwrap().as_bytes());
+    }
+
+    #[test]
+    fn it_works2() {
+        let password = [0u8, 1u8, 2u8, 3u8, 0u8, 1u8, 2u8, 3u8];
+        let salt = [0u8, 1u8, 2u8, 3u8, 3u8];
+        let test = balloon(&password, &salt, 24 , 18, 5).unwrap();
+        assert!(verify(&test, &password, &salt, 24 , 18, 5).unwrap());
     }
 
 }
