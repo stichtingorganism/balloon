@@ -23,20 +23,20 @@
  - https://github.com/moxnetwork/mox/blob/master/attic/balloon.go
  - https://github.com/nachonavarro/balloon-hashing
 
-    The algorithm consists of three main parts, as explained in the paper. 
-    The first step is the expansion, in which the system fills up a buffer 
-    with pseudorandom bytes derived from the password and salt by computing 
-    repeatedly the hash function on a combination of the password and the previous hash. 
-    The second step is mixing, in which the system mixes time_cost number of times the 
-    pseudorandom bytes in the buffer. At each step in the for loop, it updates the nth block 
-    to be the hash of the n-1th block, the nth block, and delta other blocks chosen at random 
+    The algorithm consists of three main parts, as explained in the paper.
+    The first step is the expansion, in which the system fills up a buffer
+    with pseudorandom bytes derived from the password and salt by computing
+    repeatedly the hash function on a combination of the password and the previous hash.
+    The second step is mixing, in which the system mixes time_cost number of times the
+    pseudorandom bytes in the buffer. At each step in the for loop, it updates the nth block
+    to be the hash of the n-1th block, the nth block, and delta other blocks chosen at random
     from the buffer. In the last step, the extraction, the system outputs as the hash the last element in the buffer.
 
 
     High-security key derivation 128 MB space from ref implementation.
 
     The larger the time parameter, the longer the hash computation will take.
-    The choice of time has an effect on the memory-hardness properties of the scheme: the larger time is, 
+    The choice of time has an effect on the memory-hardness properties of the scheme: the larger time is,
     the longer it takes to compute the function in small space.
 */
 
@@ -48,16 +48,21 @@ extern crate num_bigint_dig as num_bigint;
 mod error;
 pub use error::ErrorKind;
 
-mod internal;
 mod buffer;
+mod hashcash;
+pub use hashcash::{
+    hashcash_verify,
+    hashcash
+};
+mod internal;
 
 //Our Implementation makes some assumptions
 //We use 512 bits (64 bytes) hash function.
-//The size of each block is equal to the output size of the hash function H. 
+//The size of each block is equal to the output size of the hash function H.
 //We use litte endian encoding
 
-use crate::internal::Internal;
 use crate::buffer::SpaceHandler;
+use crate::internal::Internal;
 use subtle::ConstantTimeEq;
 
 //
@@ -67,34 +72,44 @@ use subtle::ConstantTimeEq;
 ///512 bits hash is 64 bytes
 pub const HASH_LEN: usize = 64;
 
-
 //new ballon instance with given space and time parameters
-pub fn balloon(passy: &[u8], salty: &[u8], space: u64, time: u64, delta: u64) -> Result<[u8; HASH_LEN], ErrorKind> {
-
+pub fn balloon(
+    passy: &[u8],
+    salty: &[u8],
+    space: u64,
+    time: u64,
+    delta: u64,
+) -> Result<[u8; HASH_LEN], ErrorKind> {
     //
     // Base Checks
     //
 
     //space must be greater than the digest length
-    if space < 1 { return Err(ErrorKind::InvalidSpace) }
-    //time must be greater than or equal to 
-    if time < 1 { return Err(ErrorKind::InvalidTime) }
+    if space < 1 {
+        return Err(ErrorKind::InvalidSpace);
+    }
+    //time must be greater than or equal to
+    if time < 1 {
+        return Err(ErrorKind::InvalidTime);
+    }
     //salt must be at least 4 bytes long
-    if salty.len() < 4 { return Err(ErrorKind::InvalidSalt) }
+    if salty.len() < 4 {
+        return Err(ErrorKind::InvalidSalt);
+    }
 
     //
     //Main Variables
     //
-    
+
     let mut internal = Internal {
         //alloc buf based on given space
-        buffer:  SpaceHandler::allocate(space as usize),
+        buffer: SpaceHandler::allocate(space as usize),
         last_block: None,
         counter: 0,
         space: space,
         time: time,
         delta: delta,
-        has_mixed: false
+        has_mixed: false,
     };
 
     //expand
@@ -111,10 +126,15 @@ pub fn balloon(passy: &[u8], salty: &[u8], space: u64, time: u64, delta: u64) ->
     return Ok(ret);
 }
 
-
-
 //Verify BALLOON-BLAKE2b derived key in constant time.
-pub fn verify(val: &[u8; HASH_LEN], passy: &[u8], salty: &[u8], space: u64, time: u64, delta: u64) -> Result<bool, ErrorKind> {
+pub fn verify(
+    val: &[u8; HASH_LEN],
+    passy: &[u8],
+    salty: &[u8],
+    space: u64,
+    time: u64,
+    delta: u64,
+) -> Result<bool, ErrorKind> {
     match balloon(passy, salty, space, time, delta) {
         //no errors continue
         Ok(res) => {
@@ -122,11 +142,11 @@ pub fn verify(val: &[u8; HASH_LEN], passy: &[u8], salty: &[u8], space: u64, time
             match compare_ct(&res, val) {
                 Some(_) => Ok(false),
                 //no res means match
-                None => Ok(true)
+                None => Ok(true),
             }
-        },
-        
-        Err(e) => Err(e)
+        }
+
+        Err(e) => Err(e),
     }
 }
 
@@ -144,10 +164,9 @@ pub fn compare_ct(a: &[u8], b: &[u8]) -> Option<ErrorKind> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    
+
     use super::*;
     use elapsed::measure_time;
 
@@ -169,7 +188,7 @@ mod tests {
 
             //s: 100, t: 50, d: 10 = 6 seconds on my mac
             //s: 400, t: 60, d: 10 = 25 seconds on my mac
-            balloon(&password, &salt, 400, 60, 10)
+            balloon(&password, &salt, 16, 20, 4)
         });
 
         println!("elapsed = {}", elapsed);
@@ -181,8 +200,7 @@ mod tests {
     fn it_works2() {
         let password = [0u8, 1u8, 2u8, 3u8, 0u8, 1u8, 2u8, 3u8];
         let salt = [0u8, 1u8, 2u8, 3u8, 3u8];
-        let test = balloon(&password, &salt, 24 , 18, 5).unwrap();
-        assert!(verify(&test, &password, &salt, 24 , 18, 5).unwrap());
+        let test = balloon(&password, &salt, 24, 18, 5).unwrap();
+        assert!(verify(&test, &password, &salt, 24, 18, 5).unwrap());
     }
-
 }

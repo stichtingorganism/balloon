@@ -1,6 +1,6 @@
 [package]
 name = "balloon"
-version = "0.0.7"
+version = "0.0.8"
 description = "Balloon Hash with Blake2b"
 authors = ["hello@organism.org"]
 edition = "2018"
@@ -10,9 +10,12 @@ repository = "https://github.com/stichtingorganism/balloon"
 [dependencies]
 subtle = "2"
 failure = "0.1"
-mohan = "0.0.18"
+mohan = "0.0.*"
 num-bigint-dig = { version = "0.4", features = ["rand", "i128", "u64_digit", "serde", "prime"] }
 num-traits = "0.2"
+num_cpus = "1.0"
+crossbeam = "0.7"
+
 
 [dev-dependencies]
 criterion = "0.2"

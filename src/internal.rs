@@ -15,18 +15,18 @@
 //Balloon Hash main routines
 //Each instance has an Internal Struct that is consumed on .finalize()
 
-use crate::HASH_LEN;
-use crate::ErrorKind;
 use crate::buffer::SpaceHandler;
+use crate::ErrorKind;
+use crate::HASH_LEN;
 use num_traits::cast::ToPrimitive;
 
-use mohan::blake2::{Params, Hash};
+use mohan::blake2::{Hash, Params};
 
 /// Internal state of a Balloon instance
 pub struct Internal {
     //main buffer
     pub buffer: SpaceHandler<Hash>,
-    //convineance 
+    //convineance
     pub last_block: Option<Hash>,
     //counter (incrementing nonce) is required for proof of memory hardness
     pub counter: u64,
@@ -37,17 +37,14 @@ pub struct Internal {
     //delta is Number of dependencies per block.
     pub delta: u64,
     //has buffer been transformed
-    pub has_mixed: bool
+    pub has_mixed: bool,
 }
 
-
 impl Internal {
-    
     //
-    // Step 1. Expansion    
+    // Step 1. Expansion
     //
     pub fn expand(&mut self, passy: &[u8], salty: &[u8]) {
-
         // Using the state context, with a key.
         let mut hasher = Params::new().hash_length(HASH_LEN).to_state();
 
@@ -58,7 +55,7 @@ impl Internal {
         hasher.update(passy);
         hasher.update(salty);
 
-        //get the hash 
+        //get the hash
         self.last_block = Some(hasher.finalize());
 
         //add to buffer the first block
@@ -79,8 +76,8 @@ impl Internal {
             //add to buffer
             self.buffer.insert(self.last_block.unwrap());
         }
-    }//end of expand
-    
+    } //end of expand
+
     //
     // Step 2. Mix buffer contents.
     //
@@ -93,7 +90,7 @@ impl Internal {
                 //Step 2a. Hash last and current blocks.
                 //
                 //new hash context
-                let mut s_squeeze =  Params::new().hash_length(HASH_LEN).to_state();
+                let mut s_squeeze = Params::new().hash_length(HASH_LEN).to_state();
                 //hash count
                 s_squeeze.update(&self.counter.to_le_bytes());
                 //increment count
@@ -111,7 +108,7 @@ impl Internal {
                 //
                 //Step 2b. Hash in pseudorandomly chosen blocks.
                 //
-                //this is bound by delta 
+                //this is bound by delta
                 for d_step in 0..self.delta {
                     //new hash context
                     let mut d_squeeze = Params::new().hash_length(HASH_LEN).to_state();
@@ -129,7 +126,8 @@ impl Internal {
                     d_squeeze.update(&d_step.to_le_bytes());
 
                     //let idx_block = to_num(d_squeeze.finalize().as_bytes(), true);
-                    let idx_block = num_bigint::BigUint::from_bytes_le(d_squeeze.finalize().as_bytes());
+                    let idx_block =
+                        num_bigint::BigUint::from_bytes_le(d_squeeze.finalize().as_bytes());
 
                     //find index of other block
                     let other = (idx_block % self.space).to_usize().unwrap();
@@ -153,30 +151,30 @@ impl Internal {
                     self.last_block = Some(d_squeeze.finalize());
                     //add to buffer
                     self.buffer[s_step as usize] = self.last_block.unwrap();
-                } 
-            }//end of space loop
-        }//end of time loop
+                }
+            } //end of space loop
+        } //end of time loop
 
         self.has_mixed = true;
-    }//end of mix
+    } //end of mix
 
     //
     // Step 3. Extract output from buffer.
     //
     pub fn finalize(&mut self) -> Result<Hash, ErrorKind> {
         let bytes = self.buffer.len() * HASH_LEN;
-        let bytes_mb = (bytes as f64) * 0.000001; 
-        println!("Balloon Hash Buffer size {:?} bytes", bytes);
-        println!("Balloon Hash Buffer size {:?} mb", bytes_mb);
+        let bytes_mb = (bytes as f64) * 0.000001;
+        // println!("Balloon Hash Buffer size {:?} bytes", bytes);
+        // println!("Balloon Hash Buffer size {:?} mb", bytes_mb);
         //only finalize if mixing has occured
         if self.has_mixed {
             //hash last block
             // Ok(blake512(&self.buffer.back.pop().unwrap().as_bytes()))
-            Ok(Params::new().hash_length(HASH_LEN).hash(&self.buffer.back.pop().unwrap().as_bytes()))
-            
+            Ok(Params::new()
+                .hash_length(HASH_LEN)
+                .hash(&self.buffer.back.pop().unwrap().as_bytes()))
         } else {
             Err(ErrorKind::FinalizeBeforeMix)
         }
-    }//end of finalize
-    
+    } //end of finalize
 }

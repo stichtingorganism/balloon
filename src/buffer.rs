@@ -15,25 +15,26 @@
 //Buffer Manager
 //Fixed Length AppendOnly Memory Buffer
 
-use std::ops::{IndexMut, Index};
-
+use std::ops::{Index, IndexMut};
 
 //Buffer backed by a Vec for now
 #[derive(Debug, Clone)]
 pub struct SpaceHandler<T> {
-    pub back: Vec<T>
+    pub back: Vec<T>,
 }
 
 impl<T> SpaceHandler<T> {
     //create a new buffer with fixed size
     pub fn allocate(len: usize) -> SpaceHandler<T> {
         SpaceHandler {
-            back: Vec::with_capacity(len)
+            back: Vec::with_capacity(len),
         }
     }
 
     //add an element, return index
-    pub fn insert(&mut self, item: T) { self.back.push(item) }
+    pub fn insert(&mut self, item: T) {
+        self.back.push(item)
+    }
 
     //retrieve an element from given index
     //pub fn get(&self, index: usize) -> Option<&T> { self.back.get(index) }
@@ -44,8 +45,9 @@ impl<T> SpaceHandler<T> {
     //clear underlying memory slab
     //pub fn clear(&mut self) { self.back.clear() }
     //pub fn is_empty(&self) -> bool { self.back.is_empty() }
-    pub fn len(&self) -> usize { self.back.len() }
-
+    pub fn len(&self) -> usize {
+        self.back.len()
+    }
 }
 
 //
@@ -56,13 +58,12 @@ impl<T> Index<usize> for SpaceHandler<T> {
     type Output = T;
 
     fn index(&self, key: usize) -> &Self::Output {
-       &self.back[key]
+        &self.back[key]
     }
 }
 
 impl<T> IndexMut<usize> for SpaceHandler<T> {
-
     fn index_mut(&mut self, key: usize) -> &mut T {
-       &mut self.back[key]
+        &mut self.back[key]
     }
 }

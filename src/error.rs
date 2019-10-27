@@ -26,6 +26,5 @@ pub enum ErrorKind {
     #[fail(display = "cannot finalize balloon before mixing")]
     FinalizeBeforeMix,
     #[fail(display = "invalid format is passed to Balloon")]
-    InvalidFormat
+    InvalidFormat,
 }
-
