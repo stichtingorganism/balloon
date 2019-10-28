@@ -24,8 +24,8 @@ use std::sync::Arc;
 pub fn hashcash(target: u64, data: &[u8]) -> (u64, H256) {
     for nonce in 0u64.. {
         let buf = [data, &nonce.to_le_bytes()].concat();
-        let nonce = blake256(&buf)[0..8];
-        let digest = blake256(&crate::balloon(&buf, &[1,1,1,1], 16, 20, 4).unwrap());
+        let salt = &blake256(&buf)[0..8];
+        let digest = blake256(&crate::balloon(&buf, &salt, 16, 20, 4).unwrap());
         if digest[..target as usize].iter().all(|x| *x == 0) {
             return (nonce, digest);
         }
@@ -36,7 +36,8 @@ pub fn hashcash(target: u64, data: &[u8]) -> (u64, H256) {
 
 pub fn hashcash_verify(target: u64, nonce: u64, data: &[u8]) -> bool {
     let buf = [data, &nonce.to_le_bytes()].concat();
-    let digest = blake256(&crate::balloon(&buf, &[1,1,1,1], 16, 20, 4).unwrap());
+    let salt = &blake256(&buf)[0..8];
+    let digest = blake256(&crate::balloon(&buf, &salt, 16, 20, 4).unwrap());
     if digest[..target as usize].iter().all(|x| *x == 0) {
             return true;
     } else {
@@ -50,7 +51,7 @@ fn test_hashcash() {
     use elapsed::measure_time;
    
     let (elapsed, _sum) = measure_time(|| {
-        hashcash(1, b"organism");
+        hashcash(0, b"organism");
     });
     println!("elapsed = {}", elapsed);
     println!("elapsed seconds = {}", elapsed.seconds());
@@ -59,6 +60,6 @@ fn test_hashcash() {
 
 #[test]
 fn test_hashcash2() {
-    let (nonce, _) = hashcash(2, b"organism");
-    assert!(hashcash_verify(1, nonce, b"organism"));
+    let (nonce, _) = hashcash(0, b"organism");
+    assert!(hashcash_verify(0, nonce, b"organism"));
 }
