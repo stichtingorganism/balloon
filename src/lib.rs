@@ -50,10 +50,7 @@ pub use error::ErrorKind;
 
 mod buffer;
 mod hashcash;
-pub use hashcash::{
-    hashcash_verify,
-    hashcash
-};
+pub use hashcash::{hashcash, hashcash_verify};
 mod internal;
 
 //Our Implementation makes some assumptions
