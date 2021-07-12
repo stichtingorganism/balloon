@@ -1,4 +1,4 @@
-// Copyright 2019 Stichting Organism
+// Copyright 2021 Stichting Organism
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,13 +28,6 @@ fn key_derivation(c: &mut Criterion) {
     c.bench_function("Balloon hashing", move |b| {
         // b.iter(| | balloon(&password, &salt, 8388608 , 3, 4))
         b.iter(|| balloon(&password, &salt, 32, 40, 8))
-    });
-}
-
-fn hashcash(c: &mut Criterion) {
-    c.bench_function("Balloon hashing", move |b| {
-        // b.iter(| | balloon(&password, &salt, 8388608 , 3, 4))
-        b.iter(|| balloon::hashcash(1, b"organism"))
     });
 }
 

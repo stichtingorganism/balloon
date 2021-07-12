@@ -1,6 +1,6 @@
 [package]
 name = "balloon"
-version = "0.0.11"
+version = "0.0.12"
 description = "Balloon Hash with Blake2b"
 authors = ["hello@organism.org"]
 edition = "2018"
