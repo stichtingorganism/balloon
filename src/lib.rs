@@ -1,4 +1,4 @@
-// Copyright 2019 Stichting Organism
+// Copyright 2021 Stichting Organism
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,32 +42,21 @@
 
 extern crate num_bigint_dig as num_bigint;
 
-///
-//Internal
-//
 mod error;
-pub use error::ErrorKind;
+pub use error::Error;
 
 mod buffer;
-mod hashcash;
-pub use hashcash::{hashcash, hashcash_verify};
+pub(crate) use buffer::SpaceHandler;
+
+pub use blake3::Hash;
+
 mod internal;
-
-//Our Implementation makes some assumptions
-//We use 512 bits (64 bytes) hash function.
-//The size of each block is equal to the output size of the hash function H.
-//We use litte endian encoding
-
-use crate::buffer::SpaceHandler;
-use crate::internal::Internal;
+use internal::Internal;
 use subtle::ConstantTimeEq;
 
 //
 //Balloon
 //
-
-///512 bits hash is 64 bytes
-pub const HASH_LEN: usize = 64;
 
 //new ballon instance with given space and time parameters
 pub fn balloon(
@@ -76,22 +65,22 @@ pub fn balloon(
     space: u64,
     time: u64,
     delta: u64,
-) -> Result<[u8; HASH_LEN], ErrorKind> {
+) -> Result<Hash, Error> {
     //
     // Base Checks
     //
 
     //space must be greater than the digest length
     if space < 1 {
-        return Err(ErrorKind::InvalidSpace);
+        return Err(Error::InvalidSpace);
     }
     //time must be greater than or equal to
     if time < 1 {
-        return Err(ErrorKind::InvalidTime);
+        return Err(Error::InvalidTime);
     }
     //salt must be at least 4 bytes long
     if salty.len() < 4 {
-        return Err(ErrorKind::InvalidSalt);
+        return Err(Error::InvalidSalt);
     }
 
     //
@@ -116,27 +105,23 @@ pub fn balloon(
     internal.mix(salty);
 
     //output
-    let output = internal.finalize()?;
-    let mut ret = [0u8; HASH_LEN];
-    ret.clone_from_slice(&output.as_bytes());
-
-    return Ok(ret);
+    internal.finalize()
 }
 
 //Verify BALLOON-BLAKE2b derived key in constant time.
 pub fn verify(
-    val: &[u8; HASH_LEN],
+    val: &Hash,
     passy: &[u8],
     salty: &[u8],
     space: u64,
     time: u64,
     delta: u64,
-) -> Result<bool, ErrorKind> {
+) -> Result<bool, Error> {
     match balloon(passy, salty, space, time, delta) {
         //no errors continue
         Ok(res) => {
             //do we have a match
-            match compare_ct(&res, val) {
+            match compare_ct(res.as_bytes(), val.as_bytes()) {
                 Some(_) => Ok(false),
                 //no res means match
                 None => Ok(true),
@@ -149,15 +134,15 @@ pub fn verify(
 
 //https://github.com/brycx/orion/blob/master/src/utilities/util.rs
 //Compare two equal length slices in constant time, using the
-pub fn compare_ct(a: &[u8], b: &[u8]) -> Option<ErrorKind> {
+pub fn compare_ct(a: &[u8], b: &[u8]) -> Option<Error> {
     if a.len() != b.len() {
-        return Some(ErrorKind::InvalidFormat);
+        return Some(Error::InvalidFormat);
     }
 
     if a.ct_eq(b).unwrap_u8() == 1 {
         None
     } else {
-        return Some(ErrorKind::InvalidFormat);
+        return Some(Error::InvalidFormat);
     }
 }
 
@@ -165,33 +150,33 @@ pub fn compare_ct(a: &[u8], b: &[u8]) -> Option<ErrorKind> {
 mod tests {
 
     use super::*;
-    use elapsed::measure_time;
+    //use elapsed::measure_time;
 
-    #[test]
-    fn it_works() {
-        let password = [0u8, 1u8, 2u8, 3u8, 0u8, 1u8, 2u8, 3u8];
-        let salt = [0u8, 1u8, 2u8, 3u8, 3u8];
-        //let test = balloon(&password, &salt, 8388608 , 3, 3);
-        //let test = balloon(&password, &salt, 16 , 20, 4)
+    // #[test]
+    // fn it_works() {
+    //     let password = [0u8, 1u8, 2u8, 3u8, 0u8, 1u8, 2u8, 3u8];
+    //     let salt = [0u8, 1u8, 2u8, 3u8, 3u8];
+    //     //let test = balloon(&password, &salt, 8388608 , 3, 3);
+    //     //let test = balloon(&password, &salt, 16 , 20, 4)
 
-        let (elapsed, _sum) = measure_time(|| {
-            //space, time, delta
-            //elapsed = 189.32 s
-            // balloon(&password, &salt, 10000, 40, 4)
-            // delta = 5
-            // time_cost = 18
-            // space_cost = 24
-            //balloon(&password, &salt, 1000000, 5, 4)
+    //     let (_elapsed, _sum) = measure_time(|| {
+    //         //space, time, delta
+    //         //elapsed = 189.32 s
+    //         //balloon(&password, &salt, 10000, 40, 4)
+    //         // delta = 5
+    //         // time_cost = 18
+    //         // space_cost = 24
+    //         //balloon(&password, &salt, 1000000, 5, 4)
 
-            //s: 100, t: 50, d: 10 = 6 seconds on my mac
-            //s: 400, t: 60, d: 10 = 25 seconds on my mac
-            balloon(&password, &salt, 16, 20, 4)
-        });
+    //         //s: 100, t: 50, d: 10 = 6 seconds on my mac
+    //         //s: 400, t: 60, d: 10 = 25 seconds on my mac
+    //         balloon(&password, &salt, 16, 20, 4)
+    //     });
 
-        println!("elapsed = {}", elapsed);
-        println!("elapsed seconds = {}", elapsed.seconds());
-        //println!("sum = {}", sum.unwrap().as_bytes());
-    }
+    //     //println!("elapsed = {}", elapsed);
+    //     //println!("elapsed seconds = {}", elapsed.seconds());
+    //     //println!("sum = {}", sum.unwrap().as_bytes());
+    // }
 
     #[test]
     fn it_works2() {

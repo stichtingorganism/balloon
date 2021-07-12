@@ -15,12 +15,8 @@
 //Balloon Hash main routines
 //Each instance has an Internal Struct that is consumed on .finalize()
 
-use crate::buffer::SpaceHandler;
-use crate::ErrorKind;
-use crate::HASH_LEN;
+use crate::{Error, SpaceHandler, Hash};
 use num_traits::cast::ToPrimitive;
-
-use mohan::blake2::{Hash, Params};
 
 /// Internal state of a Balloon instance
 pub struct Internal {
@@ -46,7 +42,7 @@ impl Internal {
     //
     pub fn expand(&mut self, passy: &[u8], salty: &[u8]) {
         // Using the state context, with a key.
-        let mut hasher = Params::new().hash_length(HASH_LEN).to_state();
+        let mut hasher = blake3::Hasher::new();
 
         //first block combines counter (0) + password + salt
         hasher.update(&self.counter.to_le_bytes());
@@ -64,7 +60,7 @@ impl Internal {
         //expand loop based on block size that fits space
         for _i in 1..self.space {
             //new hash context
-            let mut squeeze = Params::new().hash_length(HASH_LEN).to_state();
+            let mut squeeze = blake3::Hasher::new();
             //add this count
             squeeze.update(&self.counter.to_le_bytes());
             //increment count
@@ -90,7 +86,7 @@ impl Internal {
                 //Step 2a. Hash last and current blocks.
                 //
                 //new hash context
-                let mut s_squeeze = Params::new().hash_length(HASH_LEN).to_state();
+                let mut s_squeeze = blake3::Hasher::new();
                 //hash count
                 s_squeeze.update(&self.counter.to_le_bytes());
                 //increment count
@@ -98,7 +94,7 @@ impl Internal {
                 //prev block
                 s_squeeze.update(self.last_block.unwrap().as_bytes());
                 //this block
-                s_squeeze.update(&self.buffer[s_step as usize].as_bytes());
+                s_squeeze.update(self.buffer[s_step as usize].as_bytes());
 
                 //change last block to this new one
                 self.last_block = Some(s_squeeze.finalize());
@@ -111,7 +107,7 @@ impl Internal {
                 //this is bound by delta
                 for d_step in 0..self.delta {
                     //new hash context
-                    let mut d_squeeze = Params::new().hash_length(HASH_LEN).to_state();
+                    let mut d_squeeze = blake3::Hasher::new();
                     //hash count
                     d_squeeze.update(&self.counter.to_le_bytes());
                     //increment count
@@ -133,7 +129,7 @@ impl Internal {
                     let other = (idx_block % self.space).to_usize().unwrap();
 
                     //reset hasher
-                    d_squeeze = Params::new().hash_length(HASH_LEN).to_state();
+                    d_squeeze.reset();
 
                     //hash count
                     d_squeeze.update(&self.counter.to_le_bytes());
@@ -141,11 +137,11 @@ impl Internal {
                     self.counter += 1;
 
                     //
-                    d_squeeze.update(&self.buffer[s_step as usize].as_bytes());
+                    d_squeeze.update(self.buffer[s_step as usize].as_bytes());
                     //
                     //d_squeeze.update(self.last_block.unwrap().as_bytes());
 
-                    d_squeeze.update(&self.buffer[other].as_bytes());
+                    d_squeeze.update(self.buffer[other].as_bytes());
 
                     //change last block to this new one
                     self.last_block = Some(d_squeeze.finalize());
@@ -161,20 +157,17 @@ impl Internal {
     //
     // Step 3. Extract output from buffer.
     //
-    pub fn finalize(&mut self) -> Result<Hash, ErrorKind> {
-        let bytes = self.buffer.len() * HASH_LEN;
-        let bytes_mb = (bytes as f64) * 0.000001;
+    pub fn finalize(&mut self) -> Result<Hash, Error> {
+        //let bytes = self.buffer.len() * blake3::OUT_LEN;
+        //let bytes_mb = (bytes as f64) * 0.000001;
         // println!("Balloon Hash Buffer size {:?} bytes", bytes);
         // println!("Balloon Hash Buffer size {:?} mb", bytes_mb);
         //only finalize if mixing has occured
         if self.has_mixed {
             //hash last block
-            // Ok(blake512(&self.buffer.back.pop().unwrap().as_bytes()))
-            Ok(Params::new()
-                .hash_length(HASH_LEN)
-                .hash(&self.buffer.back.pop().unwrap().as_bytes()))
+            Ok(blake3::hash(self.buffer.back.pop().unwrap().as_bytes()))
         } else {
-            Err(ErrorKind::FinalizeBeforeMix)
+            Err(Error::FinalizeBeforeMix)
         }
     } //end of finalize
 }

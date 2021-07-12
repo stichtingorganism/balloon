@@ -1,4 +1,4 @@
-// Copyright 2019 Stichting Organism
+// Copyright 2021 Stichting Organism
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//Ballon errors
-use failure::Fail;
+//! Ballon errors
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Fail)]
-pub enum ErrorKind {
-    #[fail(display = "salt must be at least 4 bytes long")]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, thiserror::Error)]
+pub enum Error {
+    #[error("salt must be at least 4 bytes long")]
     InvalidSalt,
-    #[fail(display = "space must be greater than the digest length")]
+    #[error("space must be greater than the digest length")]
     InvalidSpace,
-    #[fail(display = "time must be greater than or equal to 1")]
+    #[error("time must be greater than or equal to 1")]
     InvalidTime,
-    #[fail(display = "cannot finalize balloon before mixing")]
+    #[error("cannot finalize balloon before mixing")]
     FinalizeBeforeMix,
-    #[fail(display = "invalid format is passed to Balloon")]
+    #[error("invalid format is passed to Balloon")]
     InvalidFormat,
 }
