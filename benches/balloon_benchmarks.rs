@@ -1,4 +1,5 @@
 // Copyright 2021 Stichting Organism
+// Copyright 2018 The SiO4 Project Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,24 +13,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[macro_use]
-extern crate criterion;
-extern crate balloon;
+use balloon::Balloon;
+use blake3::Hasher as Blake3;
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 
-use balloon::balloon;
-use criterion::Criterion;
+#[cfg(feature = "cpb-bench")]
+use criterion_cycles_per_byte::CyclesPerByte as Measurement;
 
-fn key_derivation(c: &mut Criterion) {
-    let password = [0u8, 1u8, 2u8, 3u8, 0u8, 1u8, 2u8, 3u8];
-    let salt = [0u8, 1u8, 2u8, 3u8, 3u8];
-    //let test = balloon(&password, &salt, 8388608 , 3, 3);
-    //let test = balloon(&password, &salt, 16 , 20, 4)
+#[cfg(not(feature = "cpb-bench"))]
+use criterion::measurement::WallTime as Measurement;
 
-    c.bench_function("Balloon hashing", move |b| {
-        // b.iter(| | balloon(&password, &salt, 8388608 , 3, 4))
-        b.iter(|| balloon(&password, &salt, 32, 40, 8))
-    });
+fn bench(c: &mut Criterion<Measurement>) {
+    let mut group = c.benchmark_group("balloon");
+
+    let mut balloon = Balloon::<Blake3>::new(0, 0, 0);
+
+    for s in &[1, 8, 16] {
+        for t in &[1, 8, 16] {
+            for d in 1..3 {
+                balloon.reconfigure(*s, *t, d);
+                group.bench_function(
+                    BenchmarkId::new("test", format!("{}/{}/{}", s, t, d)),
+                    |b| b.iter(|| balloon.process(b"super secret password", b"public salt")),
+                );
+            }
+        }
+    }
+
+    group.finish();
 }
 
-criterion_group!(benches, key_derivation);
+criterion_group!(
+    name = benches;
+    config = Criterion::default().with_measurement(Measurement);
+    targets = bench
+);
 criterion_main!(benches);

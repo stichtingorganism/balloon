@@ -1,8 +1,8 @@
 [package]
 name = "balloon"
-version = "0.0.12"
-description = "Balloon Hash with Blake2b"
-authors = ["hello@organism.org"]
+version = "0.0.13"
+description = "Balloon Hash"
+authors = ["Stichitng Organism", "The SiO4 Project Developers <https://gitlab.com/sio4>"]
 edition = "2018"
 license = "Apache-2.0"
 repository = "https://github.com/stichtingorganism/balloon"
@@ -10,14 +10,15 @@ repository = "https://github.com/stichtingorganism/balloon"
 [dependencies]
 subtle = "2"
 thiserror = "1"
-num-bigint-dig = { version = "0.7", features = ["rand", "i128", "u64_digit", "serde", "prime"] }
-num-traits = "0.2"
 blake3 = "0.3.8"
-
+digest = "0.9"
 
 [dev-dependencies]
 criterion = "0.3"
-elapsed = "0.1"
+criterion-cycles-per-byte = "0.1.2"
+
+[features]
+cpb-bench = []
 
 [[bench]]
 name = "balloon_benchmarks"
